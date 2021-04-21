@@ -1,0 +1,18 @@
+name = "myED"
+uuid = "70a8b3d1-bd1b-415d-9620-36cb099d002f"
+authors = ["Sharon-Liang <liangshuang228@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+JLD = "4138dd39-2aa7-5051-a626-17a0bb65d9c8"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+QuantumLattices = "78ae1a1f-1d5d-5174-b61c-66e31b2346dc"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
