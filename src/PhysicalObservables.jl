@@ -34,10 +34,11 @@ function partitian(β::Real, A::OFTLM)
     return z + z0
 end
 
-function free_energy(β::Real, A::FED)
+function free_energy(β::Real, A::ED)
     f = partitian(β, A) |> log
-    return -f/(A.L*β)
+    return -f/(β * A.L)
 end
+
 
 function energy(β::Real, A::FED) 
     e = A.val .- A.val[1]
@@ -52,7 +53,7 @@ function specific_heat(β::Real, A::FED)
     return c * β^2
 end
 
-function entropy(β::Real, A::FED)
+function entropy(β::Real, A::ED)
     return energy(β,A)*β + log(partitian(β,A))
 end
 
