@@ -16,7 +16,7 @@ function eye(N::Integer)
     Matrix(1.0I, N, N) |> sparse
 end
 
-function ⊗(A::AbstractMatrix, B::AbstractMatrix)
+function ⊗(A::AbstractArray, B::AbstractArray)
     kron(A,B)
 end
 
@@ -30,6 +30,16 @@ function random_init(N::Integer)
     vr = rand(Float64, N) .- 0.5
     vr = vr/norm(vr)
     return vr
+end
+
+function fidelity(N::Integer, R::Integer)
+    # average deviation form full sampling
+    v = zeros(N)
+    for r = 1:R
+        v0 = random_init(N)
+        v += v0 .* v0
+    end
+    return abs.(v ./ R .- ones(N) ./ N ) |> sum
 end
 
 function icgs(u::AbstractArray, Q::AbstractArray)

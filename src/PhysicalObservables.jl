@@ -1,16 +1,64 @@
 #module PhysicalObservables
-function partitian(β::Number, A::FED)
+
+"""Thermal dynamic quantities"""
+function partitian(β::Real, A::FED)
     e = A.val .- A.val[1]
     z = exp.(-β * e)|> sum
     return z
 end
 
-function free_energy(β::Number, A::FED)
+function partitian(β::Real, A::FTLM)
+    norm = size(A.vec)[1] / A.R
+    z = 0.0
+    for r = 1: A.R, j = 1: A.M
+        e = A.val[j,r] - A.val[1,r]
+        fac = (A.initv[:,r]' * A.vec[:,j,r]) * 
+              (A.vec[:,j,r]' * A.initv[:,r])
+        z += exp(-β * e) * fac
+    end
+    return z * norm
+end
+
+function partitian(β::Real, A::OFTLM)
+    norm = (size(A.vec)[1] - A.Ne) / A.R
+    z = 0.0
+    for r = 1: A.R, j = 1: A.M
+        e = A.val[j,r] - A.eval[1]
+        fac = (A.initv[:,r]' * A.vec[:,j,r]) * 
+              (A.vec[:,j,r]' * A.initv[:,r])
+        z += exp(-β * e) * fac
+    end
+    z = z * norm
+    e = A.eval .- A.eval[1]
+    z0 = exp.(-β * e) |> sum
+    return z + z0
+end
+
+function free_energy(β::Real, A::FED)
     f = partitian(β, A) |> log
     return -f/(A.L*β)
 end
 
-function thermal_average(β::Number, O::AbstractMatrix, A::FED)
+function energy(β::Real, A::FED) 
+    e = A.val .- A.val[1]
+    res = e .* exp.(-β*e) |> sum
+    return res/partitian(β,A)
+end
+
+function specific_heat(β::Real, A::FED)
+    e = A.val .- A.val[1]
+    c = e .* e .* exp.(-β*e) |> sum
+    c = c / partitian(β,A) - energy(β,A)^2
+    return c * β^2
+end
+
+function entropy(β::Real, A::FED)
+    return energy(β,A)*β + log(partitian(β,A))
+end
+
+
+"""Thermal average"""
+function thermal_average(β::Real, O::AbstractMatrix, A::FED)
     d1 = size(O)[1]; d2 = length(A.val)
     d = d2/d1 |> Integer
     O = O ⊗ eye(d)
@@ -21,7 +69,7 @@ function thermal_average(β::Number, O::AbstractMatrix, A::FED)
     return res/z
 end
 
-
+"""Correlations and Structure factor"""
 function correlation2time(τ::Real, β::Real,
         O1::T, O2::T, A::FED) where T<:AbstractMatrix
     d1 = size(O1)[1]; d2 = length(A.val)
