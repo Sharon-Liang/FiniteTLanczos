@@ -1,2 +1,2 @@
-# myED
- Finite temperature ED and Lanczos code
+# FiniteTLanczos
+ Finite temperature Lanczos code

@@ -1,8 +1,8 @@
 using Documenter
-using myED
+using FiniteTLanczos
 
 makedocs(
-    sitename = "myED",
+    sitename = "FiniteTLanczos",
     format = Documenter.HTML(),
     modules = [myED]
 )

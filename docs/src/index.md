@@ -1,3 +1,3 @@
-# myED.jl
+# FiniteTLanczos.jl
 
-Documentation for myED.jl
+Documentation for FiniteTLanczos.jl
