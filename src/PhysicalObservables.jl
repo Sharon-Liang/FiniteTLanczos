@@ -127,6 +127,40 @@ function thermal_average(β::Real, O::AbstractMatrix, A::FED)
     return res/z
 end
 
+function thermal_average(β::Real, O::AbstractMatrix, A::FTLM)
+    d1 = size(O)[1]; d2 = size(A.vec)[1]
+    d = d2/d1 |> Integer
+    O = O ⊗ eye(d)
+    norm = size(A.vec)[1] / A.R
+    res = 0.0
+    for r = 1: A.R, j = 1:A.M
+        e = A.val[j,r] - A.val[1,r]
+        fac = (A.initv[:,r]' * A.vec[:,j,r]) * 
+              (A.vec[:,j,r]' * O * A.initv[:,r])
+        res += exp(-β*e) * fac
+    end
+    return res*norm/partitian(β, A)
+end
+
+function thermal_average(β::Real, O::AbstractMatrix, A::OFTLM)
+    d1 = size(O)[1]; d2 = size(A.vec)[1]
+    d = d2/d1 |> Integer
+    O = O ⊗ eye(d)
+    norm = (size(A.vec)[1] - A.Ne) / A.R
+    res = 0.0
+    for r = 1: A.R, j = 1: A.M
+        e = A.val[j,r] - A.eval[1]
+        fac = (A.initv[:,r]' * A.vec[:,j,r]) * 
+              (A.vec[:,j,r]' * O * A.initv[:,r])
+        res += exp(-β*e)*fac
+    end
+    res = res * norm
+    O = A.evec' * O * A.evec
+    e = A.eval .- A.eval[1]
+    res0 = exp.(-β*e) .* diag(O) |> sum
+    return (res+res0)/partitian(β, A)
+end
+
 """Correlations and Structure factor"""
 function correlation2time(τ::Real, β::Real,
         O1::T, O2::T, A::FED) where T<:AbstractMatrix
