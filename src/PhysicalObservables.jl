@@ -43,18 +43,75 @@ end
 function energy(β::Real, A::FED) 
     e = A.val .- A.val[1]
     res = e .* exp.(-β*e) |> sum
-    return res/partitian(β,A)
+    return res/(partitian(β,A) * A.L)
 end
+
+function energy(β::Real, A::FTLM) 
+    norm = size(A.vec)[1] / A.R
+    res = 0.0
+    for r = 1: A.R, j = 1: A.M
+        e = A.val[j,r] - A.val[1,r]
+        fac = (A.initv[:,r]' * A.vec[:,j,r]) * 
+              (A.vec[:,j,r]' * A.initv[:,r])
+        res += e * exp(-β * e) * fac
+    end
+    return res * norm /(partitian(β,A) * A.L)
+end
+
+function energy(β::Real, A::OFTLM) 
+    norm = (size(A.vec)[1] - A.Ne) / A.R
+    res = 0.0
+    for r = 1: A.R, j = 1: A.M
+        e = A.val[j,r] - A.eval[1]
+        fac = (A.initv[:,r]' * A.vec[:,j,r]) * 
+              (A.vec[:,j,r]' * A.initv[:,r])
+        res += e * exp(-β * e) * fac
+    end
+    res = res * norm
+    e = A.eval .- A.eval[1]
+    res0 = e .* exp.(-β*e) |> sum
+    return (res+res0)/(partitian(β,A) * A.L)
+end
+
 
 function specific_heat(β::Real, A::FED)
     e = A.val .- A.val[1]
     c = e .* e .* exp.(-β*e) |> sum
     c = c / partitian(β,A) - energy(β,A)^2
-    return c * β^2
+    return c * β^2 / A.L
+end
+
+function specific_heat(β::Real, A::FTLM) 
+    norm = size(A.vec)[1] / A.R
+    res = 0.0
+    for r = 1: A.R, j = 1: A.M
+        e = A.val[j,r] - A.val[1,r]
+        fac = (A.initv[:,r]' * A.vec[:,j,r]) * 
+              (A.vec[:,j,r]' * A.initv[:,r])
+        res += e^2 * exp(-β * e) * fac
+    end
+    res = res * norm / partitian(β,A) - energy(β,A)^2
+    return res * β^2 / A.L
+end
+
+function specific_heat(β::Real, A::OFTLM) 
+    norm = (size(A.vec)[1] - A.Ne) / A.R
+    res = 0.0
+    for r = 1: A.R, j = 1: A.M
+        e = A.val[j,r] - A.eval[1]
+        fac = (A.initv[:,r]' * A.vec[:,j,r]) * 
+              (A.vec[:,j,r]' * A.initv[:,r])
+        res += e^2 * exp(-β * e) * fac
+    end
+    res = res * norm
+    e = A.eval .- A.eval[1]
+    res0 = e.^2 .* exp.(-β*e) |> sum
+    res = (res + res0)/partitian(β,A) - energy(β,A)^2
+    return res * β^2 / A.L
 end
 
 function entropy(β::Real, A::ED)
-    return energy(β,A)*β + log(partitian(β,A))
+    return energy(β,A)*β - β * free_energy(β,A) 
 end
 
 
