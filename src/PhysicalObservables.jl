@@ -163,7 +163,7 @@ end
 
 """Correlations and Structure factor"""
 function correlation2time(τ::Real, β::Real,
-        O1::T, O2::T, A::FED) where T<:AbstractMatrix
+    O1::T, O2::T, A::FED) where T<:AbstractMatrix
     d1 = size(O1)[1]; d2 = length(A.val)
     d = d2/d1 |> Integer
     O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
@@ -176,6 +176,52 @@ function correlation2time(τ::Real, β::Real,
     end
     return num/partitian(β,A)
 end
+
+function correlation2time(τ::Real, β::Real,
+        O1::T, O2::T, A::FTLM) where T<:AbstractMatrix
+    d1 = size(O1)[1]; d2 = size(A.vec)[1]
+    d = d2/d1 |> Integer
+    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
+    norm = size(A.vec)[1] / A.R
+    res = 0.0
+    for r = 1: A.R, i = 1:A.M, j = 1: A.M
+        ei = A.val[i,r] - A.val[1,r]
+        ej = A.val[j,r] - A.val[1,r]
+        fac = (A.initv[:,r]' * A.vec[:,i,r]) * 
+              (A.vec[:,i,r]' * O1 * A.vec[:,j,r]) *
+              (A.vec[:,j,r]' * O2 * A.initv[:,r])
+        res += exp(-β*ei + τ*ei - τ*ej) * fac
+    end
+    return res*norm/partitian(β,A)
+end
+
+function correlation2time(τ::Real, β::Real,
+    O1::T, O2::T, A::OFTLM) where T<:AbstractMatrix
+    d1 = size(O1)[1]; d2 = size(A.vec)[1]
+    d = d2/d1 |> Integer
+    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
+    norm = (size(A.vec)[1] - A.Ne) / A.R
+    res = 0.0
+    for r = 1: A.R, i = 1:A.M, j = 1: A.M
+        ei = A.val[i,r] - A.eval[1]
+        ej = A.val[j,r] - A.eval[1]
+        fac = (A.initv[:,r]' * A.vec[:,i,r]) * 
+            (A.vec[:,i,r]' * O1 * A.vec[:,j,r]) *
+            (A.vec[:,j,r]' * O2 * A.initv[:,r])
+        res += exp(-β*ei + τ*ei - τ*ej) * fac
+    end
+    res = res * norm
+
+    O1 = A.evec' * O1 * A.evec
+    O2 = A.evec' * O2 * A.evec
+    e = A.eval .- A.eval[1]
+    res0 = 0.0
+    for i = 1: A.Ne, j = 1: A.Ne
+        res0 += exp(-β*e[i]+τ*(e[i] - e[j])) * O1[i,j] * O2[j,i]
+    end
+return (res + res0)/partitian(β,A)
+end
+
 
 function imag_susceptibility(ω::Real, β::Real,
     O1::T, O2::T, A::FED; η::Real = 0.05) where T<:AbstractMatrix
@@ -194,6 +240,53 @@ function imag_susceptibility(ω::Real, β::Real,
     return  π*num/partitian(β,A)
 end
 
+function imag_susceptibility(ω::Real, β::Real,
+    O1::T, O2::T, A::FTLM; η::Real = 0.05) where T<:AbstractMatrix
+    d1 = size(O1)[1]; d2 = size(A.vec)[1]
+    d = d2/d1 |> Integer
+    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
+    norm = size(A.vec)[1] / A.R
+    res = 0.0
+    for r = 1: A.R, i = 1:A.M, j = 1: A.M
+        ei = A.val[i,r] - A.val[1,r]
+        ej = A.val[j,r] - A.val[1,r]
+        fac = (A.initv[:,r]' * A.vec[:,i,r]) * 
+              (A.vec[:,i,r]' * O1 * A.vec[:,j,r]) *
+              (A.vec[:,j,r]' * O2 * A.initv[:,r])
+        res += (exp(-β*ei)-exp(-β*ej))*fac*delta(ω+ei-ej,η)
+    end
+    res = res * norm
+    return  π*res/partitian(β,A)
+end
+
+function imag_susceptibility(ω::Real, β::Real,
+    O1::T, O2::T, A::OFTLM; η::Real = 0.05) where T<:AbstractMatrix
+    d1 = size(O1)[1]; d2 = size(A.vec)[1]
+    d = d2/d1 |> Integer
+    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
+    norm = (size(A.vec)[1] - A.Ne) / A.R
+    res = 0.0
+    for r = 1: A.R, i = 1:A.M, j = 1: A.M
+        ei = A.val[i,r] - A.eval[1]
+        ej = A.val[j,r] - A.eval[1]
+        fac = (A.initv[:,r]' * A.vec[:,i,r]) * 
+              (A.vec[:,i,r]' * O1 * A.vec[:,j,r]) *
+              (A.vec[:,j,r]' * O2 * A.initv[:,r])
+        res += (exp(-β*ei)-exp(-β*ej))*fac*delta(ω+ei-ej,η)
+    end
+    res = res * norm
+
+    O1 = A.evec' * O1 * A.evec
+    O2 = A.evec' * O2 * A.evec
+    e = A.eval .- A.eval[1]
+    res0 = 0.0
+    for i = 1: A.Ne, j = 1: A.Ne
+        num = exp(-β*e[i]) - exp(-β*e[j])
+        num = res0 * O1[i,j] * O2[j,i] * delta(ω+e[i]-e[j],η)
+        res0 += num
+    end
+    return  π*(res+res0)/partitian(β,A)
+end
 
 function structure_factor(ω::Real, β::Real,
     O1::T, O2::T, A::FED; η::Real = 0.05) where T<:AbstractMatrix
