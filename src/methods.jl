@@ -2,7 +2,7 @@
 abstract type ED end
 
 struct FED <: ED
-    L::Integer
+    m::model
     val::AbstractVector
     vec::AbstractMatrix
 end
@@ -10,11 +10,11 @@ end
 function FED(A::model)
     H = Array(A.ham)
     e, v = eigen(H)
-    return FED(A.L, e, v)
+    return FED(A, e, v)
 end
 
 struct FTLM <: ED
-    L::Integer
+    m::model
     R::Integer
     M::Integer
     initv::AbstractArray
@@ -23,7 +23,7 @@ struct FTLM <: ED
 end
 
 struct OFTLM <:ED
-    L::Integer
+    m::model
     Ne::Integer # number of exact low lying eigenstates
     eval::AbstractVector
     evec::AbstractMatrix
@@ -43,14 +43,15 @@ function FTLM(A::model; R::Integer = 50, M::Integer = 90)
     """
     dim = size(A.ham)[1]
     initv = zeros(dim, R)
-    val = zeros(M,R); vec = zeros(dim, M, R)
+    ncv = min(M, dim)
+    val = zeros(ncv,R); vec = zeros(dim, ncv, R)
     for r = 1:R
-        T, Q = itFOLM(A.ham, nev = M)
+        T, Q = itFOLM(A.ham, nev = ncv)
         initv[:,r] = Q[:,1]
         e, v = eigen(T)
         val[:,r] = e; vec[:,:,r] = Q * v
     end
-    return FTLM(A.L, R, M, initv, val, vec)
+    return FTLM(A, R, ncv, initv, val, vec)
 end
 
 function OFTLM(A::model; R = 50, M = 90, Ne =10)
@@ -72,7 +73,7 @@ function OFTLM(A::model; R = 50, M = 90, Ne =10)
         e, v = eigen(T)
         val[:,r] = e; vec[:,:,r] = Q * v
     end 
-    return OFTLM(A.L, Ne, Ee, Ve, R, M, initv, val, vec)
+    return OFTLM(A, Ne, Ee, Ve, R, M, initv, val, vec)
 end
 
 #end  # module methods

@@ -91,6 +91,32 @@ function itFOLM(A::AbstractMatrix; nev::Integer = 50, return_basis::Bool=true)
     return_basis ? (return T,Q) : (return T)
 end
 
+function itFOLM(A::AbstractMatrix, v0::AbstractVector; nev::Integer = 50, return_basis::Bool=true)
+    """Iterative Full Orthogonalized Lanczos Method
+       Input: A:= Symmetric Matrix
+              nev:= number of Lanczos steps
+       Output: T := tridiagonal matrix
+               Q := Orthonormal basis of Krylov space
+    """
+    dim = size(A)[1]; nev = min(nev, dim);
+    ncv = min(nev, dim);
+    T, Q = zeros(ncv, ncv), zeros(dim, ncv);
+    w = v0; r = zeros(dim); k = 0;
+    for k =1: ncv
+        Q[:, k] = w;
+        r = A * w;
+        T[k,k] = w' * r;
+        r = icgs(r, Q)
+        b = norm(r)
+        w = r/b;
+        if k < ncv
+            T[k, k+1] = b; T[k+1, k] = b
+        end
+    end
+    #T = Q' * A * Q;
+    return_basis ? (return T,Q) : (return T)
+end
+
 function itFOLM(A::AbstractMatrix, lb::AbstractMatrix; nev::Integer = 50, return_basis::Bool=true)
     """Iterative Full Orthogonalized Lanczos Method
        Input: A:= Symmetric Matrix
@@ -121,4 +147,6 @@ function itFOLM(A::AbstractMatrix, lb::AbstractMatrix; nev::Integer = 50, return
     #T = Q' * A * Q;
     return_basis ? (return T, Q[:, Nv+1 : ncv + Nv]) : (return T)
 end
+
+
 #end  # module utilities
