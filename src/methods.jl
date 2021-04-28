@@ -63,17 +63,21 @@ function OFTLM(A::model; R = 50, M = 90, Ne =10)
         Output: V := [E(rj),  <v psi>*<psi v>, <v psi>*<psi O v>]
                 dim/R
     """
-    Ee, Ve = eigs(A.ham, nev = Ne, which =:SR)
     dim = size(A.ham)[1]; 
     initv = zeros(dim, R)
-    val = zeros(M,R); vec = zeros(dim, M, R)   
+    ncv = min(M, dim)
+    val = zeros(ncv,R); vec = zeros(dim, ncv, R)
+
+    Ne = min(Ne, dim-1)
+    Ee, Ve = eigs(A.ham, nev = Ne, which =:SR)
+    
     for r = 1: R
-        T, Q = itFOLM(A.ham, Ve, nev = M)
+        T, Q = itFOLM(A.ham, Ve, nev = ncv)
         initv[:,r] = Q[:,1]
         e, v = eigen(T)
         val[:,r] = e; vec[:,:,r] = Q * v
     end 
-    return OFTLM(A, Ne, Ee, Ve, R, M, initv, val, vec)
+    return OFTLM(A, Ne, Ee, Ve, R, ncv, initv, val, vec)
 end
 
 #end  # module methods

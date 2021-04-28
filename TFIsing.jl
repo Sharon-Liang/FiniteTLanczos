@@ -1,15 +1,28 @@
 using FiniteTLanczos
-using PyPlot
 using Printf
 
-z = pauli('z')
-x = pauli('x')
+const z = pauli('z')
+const x = pauli('x')
+const i2 = eye(2)
+
 g = 1.0
-ti = @sprintf "Γ/J = %.1f" g
-h = TFIsing(1.,g,L = 3)
+len = 3
+sample = 100
+
+h = TFIsing(1., g, L = len)
+ti = @sprintf "Γ/J = %.1f, system size = %i" g len
+s1 = @sprintf "fidelity of %i random samples of %i dimensional v0 = " sample 2^h.L
+println(s1, fidelity(2^h.L, sample))
+
+
 A = FED(h)
-B = FTLM(h)
-C = OFTLM(h)
+B = FTLM(h, R=sample)
+C = OFTLM(h, R=sample)
+
+mf1 = a -> FTLM(a, R = sample)
+cf1 = a -> correlation2time(20, 20, z, z, mf1(a))
+
+c_ave = c_average(100, h, mf = mf1, cf = cf1)
 
 beta = [i for i in range(0.1, 20, length = 50)]
 tau = [i for i in range(0.1/200,(20-0.1)/200, length = 20)]

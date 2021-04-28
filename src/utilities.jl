@@ -27,6 +27,7 @@ function delta(x::Real, η::Real)
 end
 
 function random_init(N::Integer)
+    Random.seed!()
     vr = rand(Float64, N) .- 0.5
     vr = vr/norm(vr)
     return vr
@@ -42,13 +43,13 @@ function fidelity(N::Integer, R::Integer)
     return abs.(v ./ R .- ones(N) ./ N ) |> sum
 end
 
-function icgs(u::AbstractArray, Q::AbstractArray)
+function icgs(u::AbstractArray, Q::AbstractArray; itmax::Integer = 3)
     """Iterative Classical Gram-Schmidt Algorithm.
        Input: u := the vector to be orthogonalized
               Q := the orthonormal basis
        Output: u := the orthogonalized vector
     """
-    a = 0.5; itmax = 3;
+    a = 0.5
     r0 = norm(u); r1 = r0
     for it = 1: itmax
         u = u - Q * (Q' * u)
