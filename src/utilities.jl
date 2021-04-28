@@ -27,6 +27,7 @@ function delta(x::Real, η::Real)
 end
 
 function random_init(N::Integer)
+    Random.seed!()
     vr = rand(Float64, N) .- 0.5
     vr = vr/norm(vr)
     return vr
@@ -42,13 +43,13 @@ function fidelity(N::Integer, R::Integer)
     return abs.(v ./ R .- ones(N) ./ N ) |> sum
 end
 
-function icgs(u::AbstractArray, Q::AbstractArray)
+function icgs(u::AbstractArray, Q::AbstractArray; itmax::Integer = 3)
     """Iterative Classical Gram-Schmidt Algorithm.
        Input: u := the vector to be orthogonalized
               Q := the orthonormal basis
        Output: u := the orthogonalized vector
     """
-    a = 0.5; itmax = 3;
+    a = 0.5
     r0 = norm(u); r1 = r0
     for it = 1: itmax
         u = u - Q * (Q' * u)
@@ -74,6 +75,32 @@ function itFOLM(A::AbstractMatrix; nev::Integer = 50, return_basis::Bool=true)
     dim = size(A)[1]; nev = min(nev, dim);
     ncv = min(nev, dim);
     v0 = random_init(dim) # random initiation vector
+    T, Q = zeros(ncv, ncv), zeros(dim, ncv);
+    w = v0; r = zeros(dim); k = 0;
+    for k =1: ncv
+        Q[:, k] = w;
+        r = A * w;
+        T[k,k] = w' * r;
+        r = icgs(r, Q)
+        b = norm(r)
+        w = r/b;
+        if k < ncv
+            T[k, k+1] = b; T[k+1, k] = b
+        end
+    end
+    #T = Q' * A * Q;
+    return_basis ? (return T,Q) : (return T)
+end
+
+function itFOLM(A::AbstractMatrix, v0::AbstractVector; nev::Integer = 50, return_basis::Bool=true)
+    """Iterative Full Orthogonalized Lanczos Method
+       Input: A:= Symmetric Matrix
+              nev:= number of Lanczos steps
+       Output: T := tridiagonal matrix
+               Q := Orthonormal basis of Krylov space
+    """
+    dim = size(A)[1]; nev = min(nev, dim);
+    ncv = min(nev, dim);
     T, Q = zeros(ncv, ncv), zeros(dim, ncv);
     w = v0; r = zeros(dim); k = 0;
     for k =1: ncv
@@ -121,4 +148,6 @@ function itFOLM(A::AbstractMatrix, lb::AbstractMatrix; nev::Integer = 50, return
     #T = Q' * A * Q;
     return_basis ? (return T, Q[:, Nv+1 : ncv + Nv]) : (return T)
 end
+
+
 #end  # module utilities
