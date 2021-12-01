@@ -16,6 +16,17 @@ function pauli(symbol::Symbol)
     end
 end
 
+"""
+identity matrix
+"""
+function eye(dim::Integer)
+    Matrix{Float64}(I,dim,dim)
+end
+
+function eye(T::DataType, dim::Integer)
+    Matrix{T}(I,dim,dim)
+end
+
 function ⊗(A::AbstractArray, B::AbstractArray)
     kron(A,B)
 end
@@ -32,41 +43,41 @@ end
 """
 Create a N-dimensional normalized random vector
 """
-function random_init(N::Integer)
+function random_init(dim::Integer)
     Random.seed!()
-    vr = rand(N) .- 0.5
+    vr = rand(dim) .- 0.5
     vr = vr/norm(vr)
     return vr
 end
 
-function random_init(T::DataType, N::Integer)
+function random_init(T::DataType, dim::Integer)
     Random.seed!()
-    vr = rand(T, N) .- 0.5
+    vr = rand(T, dim) .- 0.5
     vr = vr/norm(vr)
     return vr
 end
 
 """
 Average deviation form full sampling.
-N: dimension of the target vector
-R: number of random vectors
+    dim: dimension of the target vector
+    R: number of random vectors
 """
-function fidelity(N::Integer, R::Integer;)
-    v = zeros(N)
+function fidelity(dim::Integer, R::Integer;)
+    v = zeros(dim)
     for r = 1:R
-        v0 = random_init(N)
+        v0 = random_init(dim)
         v += v0 .* v0
     end
-    return abs.(v ./ R .- ones(N) ./ N ) |> sum
+    return abs.(v ./ R .- ones(dim) ./ dim ) |> sum
 end
 
-function fidelity(T::DataType, N::Integer, R::Integer)
-    v = zeros(T, N)
+function fidelity(T::DataType, dim::Integer, R::Integer)
+    v = zeros(T, dim)
     for r = 1:R
-        v0 = random_init(T, N)
+        v0 = random_init(T, dim)
         v += v0 .* v0
     end
-    return abs.(v ./ R .- ones(T,N) ./ N ) |> sum
+    return abs.(v ./ R .- ones(T,dim) ./ dim ) |> sum
 end
 
 
