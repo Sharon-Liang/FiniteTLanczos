@@ -210,6 +210,18 @@ function correlation_2time(τ::Real, β::Real,
     return num/partitian(β,A)
 end
 
+
+
+
+
+
+
+
+
+
+
+"""
+-----success, need to be modified-----
 function correlation_2time(τ::Real, β::Real,
         O1::T, O2::T, A::FTLM) where T<:AbstractMatrix
     d1 = size(O1)[1]; d2 = size(A.vec)[1]
@@ -235,8 +247,11 @@ function correlation_2time(τ::Real, β::Real,
     end
     return res*n/partitian(β,A)
 end
+"""
+
 
 """
+-------fail!!!!---------
 function correlation2time(τ::Real, β::Real,
     O1::T, O2::T, A::OFTLM) where T<:AbstractMatrix
     d1 = size(O1)[1]; d2 = size(A.vec)[1]
