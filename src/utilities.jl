@@ -1,40 +1,57 @@
 #module utilities
 import Base: kron
 
-function pauli(char::Char)
-    if char=='x' return [0. 1.; 1. 0.] |> sparse
-    elseif char=='y' return [0. -1im; 1im 0.] |> sparse
-    elseif char=='z' return [1. 0.; 0. -1.] |> sparse
-    elseif char=='+' return [0. 1.; 0. 0.] |> sparse
-    elseif char=='-' return [0. 0.; 1. 0.] |> sparse
+"""
+Pauli matrices
+"""
+function pauli(symbol::Symbol)
+    if symbol==:x return [0. 1.; 1. 0.]
+    elseif symbol==:y return [0. -1im; 1im 0.]
+    elseif symbol==:iy return [0. 1.; -1. 0.]
+    elseif symbol==:z return [1. 0.; 0. -1.]
+    elseif symbol==:+ return [0. 1.; 0. 0.]
+    elseif symbol==:- return [0. 0.; 1. 0.]
     else
-        @error "The input should be 'x','y','z','+','-'."
+        error("The input should be :x,:y,:z,:+,:-, :iy.")
     end
-end
-
-function eye(N::Integer)
-    Matrix(1.0I, N, N) |> sparse
 end
 
 function ⊗(A::AbstractArray, B::AbstractArray)
     kron(A,B)
 end
 
+"""
+Gaussian approximate delta function
+"""
 function delta(x::Real, η::Real)
     num = η
     den = (x^2 + η^2) * π
     return num/den
 end
 
+"""
+Create a N-dimensional normalized random vector
+"""
 function random_init(N::Integer)
     Random.seed!()
-    vr = rand(Float64, N) .- 0.5
+    vr = rand(N) .- 0.5
     vr = vr/norm(vr)
     return vr
 end
 
-function fidelity(N::Integer, R::Integer)
-    # average deviation form full sampling
+function random_init(T::DataType, N::Integer)
+    Random.seed!()
+    vr = rand(T, N) .- 0.5
+    vr = vr/norm(vr)
+    return vr
+end
+
+"""
+Average deviation form full sampling.
+N: dimension of the target vector
+R: number of random vectors
+"""
+function fidelity(N::Integer, R::Integer;)
     v = zeros(N)
     for r = 1:R
         v0 = random_init(N)
@@ -43,12 +60,23 @@ function fidelity(N::Integer, R::Integer)
     return abs.(v ./ R .- ones(N) ./ N ) |> sum
 end
 
+function fidelity(T::DataType, N::Integer, R::Integer)
+    v = zeros(T, N)
+    for r = 1:R
+        v0 = random_init(T, N)
+        v += v0 .* v0
+    end
+    return abs.(v ./ R .- ones(T,N) ./ N ) |> sum
+end
+
+
+"""
+Iterative Classical Gram-Schmidt Algorithm.
+    Input: u := the vector to be orthogonalized
+        Q := the orthonormal basis
+    Output: u := the orthogonalized vector
+"""
 function icgs(u::AbstractArray, Q::AbstractArray; itmax::Integer = 3)
-    """Iterative Classical Gram-Schmidt Algorithm.
-       Input: u := the vector to be orthogonalized
-              Q := the orthonormal basis
-       Output: u := the orthogonalized vector
-    """
     a = 0.5
     r0 = norm(u); r1 = r0
     for it = 1: itmax
@@ -65,13 +93,15 @@ function icgs(u::AbstractArray, Q::AbstractArray; itmax::Integer = 3)
     return u
 end
 
+
+"""
+Iterative Full Orthogonalized Lanczos Method
+    Input: A:= Symmetric Matrix
+        nev:= number of Lanczos steps
+    Output: T := tridiagonal matrix
+            Q := Orthonormal basis of Krylov space
+"""
 function itFOLM(A::AbstractMatrix; nev::Integer = 50, return_basis::Bool=true)
-    """Iterative Full Orthogonalized Lanczos Method
-       Input: A:= Symmetric Matrix
-              nev:= number of Lanczos steps
-       Output: T := tridiagonal matrix
-               Q := Orthonormal basis of Krylov space
-    """
     dim = size(A)[1]; nev = min(nev, dim);
     ncv = min(nev, dim);
     v0 = random_init(dim) # random initiation vector
@@ -92,13 +122,16 @@ function itFOLM(A::AbstractMatrix; nev::Integer = 50, return_basis::Bool=true)
     return_basis ? (return T,Q) : (return T)
 end
 
+
+"""
+Iterative Full Orthogonalized Lanczos Method
+    Input: A:= Symmetric Matrix
+           nev:= number of Lanczos steps
+           v0: init vector
+    Output: T := tridiagonal matrix
+            Q := Orthonormal basis of Krylov space
+"""
 function itFOLM(A::AbstractMatrix, v0::AbstractVector; nev::Integer = 50, return_basis::Bool=true)
-    """Iterative Full Orthogonalized Lanczos Method
-       Input: A:= Symmetric Matrix
-              nev:= number of Lanczos steps
-       Output: T := tridiagonal matrix
-               Q := Orthonormal basis of Krylov space
-    """
     dim = size(A)[1]; nev = min(nev, dim);
     ncv = min(nev, dim);
     T, Q = zeros(ncv, ncv), zeros(dim, ncv);
@@ -118,14 +151,16 @@ function itFOLM(A::AbstractMatrix, v0::AbstractVector; nev::Integer = 50, return
     return_basis ? (return T,Q) : (return T)
 end
 
+
+"""
+Iterative Full Orthogonalized Lanczos Method
+    Input: A:= Symmetric Matrix
+        nev:= number of Lanczos steps
+        lb := exact low lying eigen-states
+    Output: T := tridiagonal matrix
+            Q := Orthonormal basis of Krylov space
+"""
 function itFOLM(A::AbstractMatrix, lb::AbstractMatrix; nev::Integer = 50, return_basis::Bool=true)
-    """Iterative Full Orthogonalized Lanczos Method
-       Input: A:= Symmetric Matrix
-              nev:= number of Lanczos steps
-              lb := exact low lying eigen-states
-       Output: T := tridiagonal matrix
-               Q := Orthonormal basis of Krylov space
-    """
     dim = size(A)[1]; nev = min(nev, dim);
     ncv = min(nev, dim);
     v0 = random_init(dim) # random initiation vector
@@ -150,4 +185,4 @@ function itFOLM(A::AbstractMatrix, lb::AbstractMatrix; nev::Integer = 50, return
 end
 
 
-#end  # module utilities
+#end module utilities
