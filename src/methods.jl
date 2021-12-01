@@ -72,7 +72,7 @@ OFTLM: orthogonalized finite-temperature lanczos method
      val: eigen values
      vec: eigen vectors
 """
-struct OFTLM {T<:Number,Ti<:Integer} <: LANCZOS
+struct OFTLM{T<:Number,Ti<:Integer} <: LANCZOS
     model::MODEL
     Ne::Ti
     eval::Vector{T}
@@ -111,4 +111,4 @@ function OFTLM(A::MODEL; R::Ti=50, M::Ti=90, Ne::Ti=10) where Ti<:Integer
     return OFTLM(A, Ne, Ee, Ve, R, ncv, initv, val, vec)
 end
 
-#end module methods
+#end #module methods
