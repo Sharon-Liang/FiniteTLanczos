@@ -12,7 +12,7 @@ export icgs, itFOLM
 
 export MODEL, HeisenbergModel
 
-export ED, FED, FTLM, OFTLM
+export LANCZOS, FED, FTLM, OFTLM
 
 export ave_sx, critical_zz_cor, critical_zz_sus, critical_zz_chi
 export partitian, free_energy, energy, specific_heat, entropy
