@@ -14,11 +14,13 @@ export MODEL, TFIsing, HeisenbergModel
 
 export LANCZOS, FED, FTLM, OFTLM
 
+export Masubara_freq
 export partitian, free_energy, energy, specific_heat, entropy
-export thermal_average, c_average, correlation_2time
+export thermal_average, c_average
+export correlation_2time, Masubara_freq_GF, spectral_density, structure_factor
 
 export ave_sx, critical_zz_cor, critical_zz_sus, critical_zz_chi
-export imag_susceptibility, structure_factor
+
 
 
 include("utilities.jl")

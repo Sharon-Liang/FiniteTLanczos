@@ -1,4 +1,14 @@
 #module PhysicalObservables
+"""
+Masubara frequencies ωn
+"""
+function Masubara_freq(n::Int64, β::Real; type::Symbol=:b)
+    if type == :b  N = 2n
+    elseif type == :f  N = 2n + 1
+    else @error "type should be :b for bosons and :f for fermions" 
+    end
+    return N*π/β
+end
 
 """
 partitian function
@@ -210,13 +220,113 @@ function correlation_2time(τ::Real, β::Real,
     return num/partitian(β,A)
 end
 
+"""
+A useful function: f = e^(-b*e1) - e^(-b*e2) / (e2 - e1)
+"""
+function diffaddexp(b::Real, e1::Real, e2::Real)
+    if abs(e2 - e1) < 1.e-10
+        return exp(-b*e1) * b
+    else
+        num = exp(-b*e1) - exp(-b*e2)
+        den = e2 - e1
+        return num/den
+    end
+end
 
 
+"""
+Masubara frequency Green's functions: defalt type = :b
+"""
+function Masubara_freq_GF(n::Integer, β::Real,
+    O1::T, O2::T, A::FED) where T<:AbstractMatrix
+    λ = 1.0
+    ωn = Masubara_freq(n,β,type=:b)
+    d = d2/d1 |> Integer
+    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
+    O1 = A.vec' * O1 * A.vec
+    O2 = A.vec' * O2 * A.vec
+    e = A.val .- A.val[1]
+    num = 0.0
+    if ωn != 0
+        for i = 1: d2, j = 1: d2
+            up = exp(-β*e[i]) - λ*exp(-β*e[j])
+            up = up * O1[i,j] * O2[j,i]
+            down = 1.0im * ωn - e[j] + e[i]
+            num += up/down
+        end
+    else
+        for i = 1: d2, j = 1: d2
+            num -= O1[i,j] * O2[j,i]*diffaddexp(β,e[i],e[j])
+        end
+    end
+    return num/partitian(β,A)
+end
 
 
+"""
+spectral density: ρ(ω) = 2Imχ(ω) = -2ImG(ω)
+"""
+function spectral_density(ω::Real, β::Real, O1::T, O2::T, 
+    A::FED; η::Float64 = 0.001) where T<:AbstractMatrix
+    d = d2/d1 |> Integer
+    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
+    O1 = A.vec' * O1 * A.vec
+    O2 = A.vec' * O2 * A.vec
+    e = A.val .- A.val[1]
+    num = 0.0
+    for i = 1: d2, j = 1: d2
+        res = exp(-β*e[i]) - exp(-β*e[j])
+        res = res * O1[i,j] * O2[j,i] * delta(ω+e[i]-e[j],η)
+        num += res
+    end
+    return 2π*num/partitian(β,A)
+end
 
 
+"""
+structure factor(spectral representation)
+"""
+function structure_factor(ω::Real, β::Real,
+    O1::T, O2::T, A::FED; η::Real = 0.001) where T<:AbstractMatrix
+    d1 = size(O1)[1]; d2 = length(A.val)
+    d = d2/d1 |> Integer
+    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
+    O1 = A.vec' * O1 * A.vec
+    O2 = A.vec' * O2 * A.vec
+    e = A.val .- A.val[1]
+    num = 0.0
+    for i = 1: d2, j = 1: d2
+        num += exp(-β*e[i])*O1[i,j]*O2[j,i]*delta(ω+e[i]-e[j],η)
+    end
+    return  2π*num/partitian(β,A)
+end
 
+function structure_factor(ω::Real, β::Real,
+    O1::T, O2::T, A::FTLM; η::Real = 0.001) where T<:AbstractMatrix
+    d1 = size(O1)[1]; d2 = size(A.vec)[1]
+    d = d2/d1 |> Integer
+    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
+    n = size(A.vec)[1] / A.R
+    res = 0.0
+    for r = 1: A.R
+        ei = A.val[:,r] .- A.val[1,r]
+        #2nd Lanczos procedure
+        v0 = O2 * A.initv[:,r]
+        v0 = v0 / norm(v0)
+        T2, Q2 = itFOLM(A.model.h, v0, nev = A.M)
+        ej, v = eigen(T2)
+        ej = ej .- A.val[1,r]
+        vec = Q2 * v
+        for i = 1:A.M, j = 1: A.M
+            fac = (A.initv[:,r]' * A.vec[:,i,r]) * 
+                (A.vec[:,i,r]' * O1 * vec[:,j]) *
+                (vec[:,j]' * O2 * A.initv[:,r])
+            res += exp(-β*ei[i]) *fac*delta(ω+ei[i]-ej[j],η)
+        end
+    end
+    res = res * n
+    return  2π*res/partitian(β,A)
+end
 
 
 
@@ -289,107 +399,4 @@ function correlation2time(τ::Real, β::Real,
 end
 """
 
-# ----------------------------------------------------------------------#
-# ----------------------------------------------------------------------#
-"""
-A useful function: f = e^(-b*e1) - e^(-b*e2) / (e2 - e1)
-"""
-function diffaddexp(b::Real, e1::Real, e2::Real)
-    if abs(e2 - e1) < 1.e-10
-        return exp(-b*e1) * b
-    else
-        num = exp(-b*e1) - exp(-b*e2)
-        den = e2 - e1
-        return num/den
-    end
-end
-
-
-function imag_susceptibility(ω::Real, β::Real,
-    O1::T, O2::T, A::FED; η::Real = 0.05) where T<:AbstractMatrix
-    d1 = size(O1)[1]; d2 = length(A.val)
-    d = d2/d1 |> Integer
-    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
-    O1 = A.vec' * O1 * A.vec
-    O2 = A.vec' * O2 * A.vec
-    e = A.val .- A.val[1]
-    num = 0.0
-    for i = 1: d2, j = 1: d2
-        res = exp(-β*e[i]) - exp(-β*e[j])
-        res = res * O1[i,j] * O2[j,i] * delta(ω+e[i]-e[j],η)
-        num += res
-    end
-    return  π*num/partitian(β,A)
-end
-
-function imag_susceptibility(ω::Real, β::Real,
-    O1::T, O2::T, A::FTLM; η::Real = 0.05) where T<:AbstractMatrix
-    d1 = size(O1)[1]; d2 = size(A.vec)[1]
-    d = d2/d1 |> Integer
-    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
-    n = size(A.vec)[1] / A.R
-    res = 0.0
-    for r = 1: A.R
-        ei = A.val[:,r] .- A.val[1,r]
-        #2nd Lanczos procedure
-        v0 = O2 * A.initv[:,r]
-        v0 = v0 / norm(v0)
-        T2, Q2 = itFOLM(A.model.h, v0, nev = A.M)
-        ej, v = eigen(T2)
-        ej = ej .- A.val[1,r]
-        vec = Q2 * v
-        for i = 1:A.M, j = 1: A.M
-            fac = (A.initv[:,r]' * A.vec[:,i,r]) * 
-                (A.vec[:,i,r]' * O1 * vec[:,j]) *
-                (vec[:,j]' * O2 * A.initv[:,r])
-            res += (exp(-β*ei[i])-exp(-β*ej[j]))*fac*delta(ω+ei[i]-ej[j],η)
-        end
-    end
-    res = res * n
-    return  π*res/partitian(β,A)
-end
-
-# ----------------------------------------------------------------------#
-# ----------------------------------------------------------------------#
-function structure_factor(ω::Real, β::Real,
-    O1::T, O2::T, A::FED; η::Real = 0.05) where T<:AbstractMatrix
-    d1 = size(O1)[1]; d2 = length(A.val)
-    d = d2/d1 |> Integer
-    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
-    O1 = A.vec' * O1 * A.vec
-    O2 = A.vec' * O2 * A.vec
-    e = A.val .- A.val[1]
-    num = 0.0
-    for i = 1: d2, j = i+1: d2
-        num += exp(-β*e[i]) * O1[i,j] * O2[j,i] * delta(ω+e[i]-e[j],η)
-    end
-    return  2π * num/partitian(β,A)
-end
-
-function structure_factor(ω::Real, β::Real,
-    O1::T, O2::T, A::FTLM; η::Real = 0.05) where T<:AbstractMatrix
-    d1 = size(O1)[1]; d2 = size(A.vec)[1]
-    d = d2/d1 |> Integer
-    O1 = O1 ⊗ eye(d) ; O2 = O2 ⊗ eye(d)
-    n = size(A.vec)[1] / A.R
-    res = 0.0
-    for r = 1: A.R
-        ei = A.val[:,r] .- A.val[1,r]
-        #2nd Lanczos procedure
-        v0 = O2 * A.initv[:,r]
-        v0 = v0 / norm(v0)
-        T2, Q2 = itFOLM(A.model.h, v0, nev = A.M)
-        ej, v = eigen(T2)
-        ej = ej .- A.val[1,r]
-        vec = Q2 * v
-        for i = 1:A.M, j = 1: A.M
-            fac = (A.initv[:,r]' * A.vec[:,i,r]) * 
-                (A.vec[:,i,r]' * O1 * vec[:,j]) *
-                (vec[:,j]' * O2 * A.initv[:,r])
-            res += exp(-β*ei[i]) *fac*delta(ω+ei[i]-ej[j],η)
-        end
-    end
-    res = res * n
-    return  2π*res/partitian(β,A)
-end
-#end  # modulePhysicalObservables
+#end  #module PhysicalObservables
