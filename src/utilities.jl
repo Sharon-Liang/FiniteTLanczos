@@ -71,7 +71,7 @@ function fidelity(dim::Integer, R::Integer;)
     return abs.(v ./ R .- ones(dim) ./ dim ) |> sum
 end
 
-function fidelity(T::DataType, dim::Integer, R::Integer)
+function deviation(T::DataType, dim::Integer, R::Integer)
     v = zeros(T, dim)
     for r = 1:R
         v0 = random_init(T, dim)

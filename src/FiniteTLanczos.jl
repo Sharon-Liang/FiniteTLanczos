@@ -7,7 +7,7 @@ using Arpack
 using Random; Random.seed!()
 #using StatsFuns, SpecialFunctions
 
-export pauli, eye, ⊗, delta, random_init, fidelity
+export pauli, eye, ⊗, delta, random_init, deviation
 export icgs, itFOLM
 
 export MODEL, TFIsing, HeisenbergModel
