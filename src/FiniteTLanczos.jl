@@ -1,10 +1,15 @@
 module FiniteTLanczos
 
-using SparseArrays
 using LinearAlgebra
+using Random; Random.seed!()
+
+
+
+using SparseArrays
+
 using QuantumLattices
 using Arpack
-using Random; Random.seed!()
+
 using StatsFuns, SpecialFunctions
 
 export pauli, eye, ⊗,  delta, random_init, fidelity

@@ -1,5 +1,5 @@
 #module methods
-abstract type ED end
+abstract type AbstractLanczos end
 
 struct FED <: ED
     m::model
